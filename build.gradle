@@ -24,7 +24,7 @@ application {
 }
 
 dependencies {
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.19.2'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.22.0'
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.19.2'
     implementation 'org.benf:cfr:0.152'
     testImplementation platform('org.junit:junit-bom:5.13.4')
