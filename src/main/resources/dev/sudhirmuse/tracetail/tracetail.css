@@ -1,0 +1,45 @@
+.root {
+    -fx-font-family: "Segoe UI", "Inter", sans-serif;
+    -fx-font-size: 13px;
+    -fx-base: #151a22;
+    -fx-background: #0f131a;
+    -fx-control-inner-background: #111720;
+    -fx-text-background-color: #dce5f2;
+    -fx-accent: #4aa8ff;
+}
+
+.menu-bar, .tool-bar, .status-bar {
+    -fx-background-color: #171d27;
+}
+
+.status-bar {
+    -fx-padding: 7 10 7 10;
+    -fx-text-fill: #9fb0c6;
+}
+
+.table-view, .text-area {
+    -fx-background-color: #0f141c;
+    -fx-border-color: #273244;
+}
+
+.table-row-cell {
+    -fx-background-color: #111720;
+    -fx-border-color: transparent transparent #1c2532 transparent;
+}
+
+.table-row-cell:odd { -fx-background-color: #131a24; }
+.table-row-cell:selected { -fx-background-color: #21456b; }
+.table-row-cell.level-warn .text { -fx-fill: #f2c14e; }
+.table-row-cell.level-error .text, .table-row-cell.level-fatal .text { -fx-fill: #ff6b7a; }
+.table-row-cell.level-debug .text, .table-row-cell.level-trace .text { -fx-fill: #8190a5; }
+.table-row-cell.level-info .text { -fx-fill: #c9d6e6; }
+
+.details {
+    -fx-font-family: "Cascadia Mono", "Consolas", monospace;
+    -fx-font-size: 12px;
+}
+
+.invalid-filter {
+    -fx-border-color: #ff5d73;
+    -fx-border-width: 1.5;
+}
