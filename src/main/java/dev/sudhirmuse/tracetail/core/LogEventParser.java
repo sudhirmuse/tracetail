@@ -19,12 +19,15 @@ public final class LogEventParser {
         Pattern.compile("\\b([0-9a-fA-F]{32})\\b"),
         Pattern.compile("\\b([0-9a-fA-F]{16})\\b")
     );
+    private static final Pattern THREAD = Pattern.compile("\\[([^]\\r\\n]{1,160})]");
 
     private final Clock clock;
     private final LogRedactor redactor;
     private final ObjectMapper mapper;
     private final StringBuilder pending = new StringBuilder();
     private long sequence;
+    private long pendingLineNumber;
+    private long inferredLineNumber;
 
     public LogEventParser() {
         this(Clock.systemUTC(), new LogRedactor(), new ObjectMapper());
@@ -37,10 +40,17 @@ public final class LogEventParser {
     }
 
     public List<LogEvent> accept(String line) {
+        return accept(line, ++inferredLineNumber);
+    }
+
+    public List<LogEvent> accept(String line, long lineNumber) {
         List<LogEvent> emitted = new ArrayList<>(1);
         String normalized = line == null ? "" : line.replace("\uFEFF", "").replace("\uFFFD", "");
         if (startsNewEvent(normalized) && !pending.isEmpty()) emitted.add(toEvent(pending.toString()));
-        if (startsNewEvent(normalized)) pending.setLength(0);
+        if (startsNewEvent(normalized)) {
+            pending.setLength(0);
+            pendingLineNumber = lineNumber;
+        }
         if (!pending.isEmpty()) pending.append('\n');
         pending.append(normalized);
         return emitted;
@@ -53,7 +63,7 @@ public final class LogEventParser {
         return List.of(event);
     }
 
-    public void reset() { pending.setLength(0); }
+    public void reset() { pending.setLength(0); pendingLineNumber = 0; inferredLineNumber = 0; }
 
     private boolean startsNewEvent(String line) {
         if (pending.isEmpty()) return true;
@@ -68,9 +78,10 @@ public final class LogEventParser {
         String content = redactor.redact(raw).stripTrailing();
         LogLevel level = extractLevel(content);
         String traceId = extractTraceId(content).orElse("");
+        String threadId = extractThreadId(content).orElse("");
         String summary = content.lines().findFirst().orElse("").strip();
         if (summary.length() > 240) summary = summary.substring(0, 237) + "...";
-        return new LogEvent(++sequence, clock.instant(), level, traceId, summary, content);
+        return new LogEvent(++sequence, pendingLineNumber, clock.instant(), level, threadId, traceId, summary, content);
     }
 
     private LogLevel extractLevel(String content) {
@@ -85,6 +96,15 @@ public final class LogEventParser {
         for (Pattern pattern : TRACE_PATTERNS) {
             Matcher matcher = pattern.matcher(firstLine);
             if (matcher.find()) return Optional.of(matcher.group(1));
+        }
+        return Optional.empty();
+    }
+
+    private Optional<String> extractThreadId(String content) {
+        Matcher matcher = THREAD.matcher(content.lines().findFirst().orElse(""));
+        while (matcher.find()) {
+            String candidate = matcher.group(1).strip();
+            if (!candidate.toLowerCase(Locale.ROOT).contains("traceid=")) return Optional.of(candidate);
         }
         return Optional.empty();
     }

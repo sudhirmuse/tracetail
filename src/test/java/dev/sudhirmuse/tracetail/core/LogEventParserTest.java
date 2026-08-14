@@ -20,13 +20,15 @@ class LogEventParserTest {
     @Test
     void groupsMultilineJavaStackTraceAndExtractsMetadata() {
         LogEventParser parser = parser();
-        assertTrue(parser.accept("2026-08-14 10:00:00 ERROR [traceId=abc-123] Checkout failed").isEmpty());
+        assertTrue(parser.accept("2026-08-14 10:00:00 ERROR [http-worker-7] [traceId=abc-123] Checkout failed").isEmpty());
         assertTrue(parser.accept("    at com.acme.Checkout.pay(Checkout.java:42)").isEmpty());
         assertTrue(parser.accept("Caused by: java.io.IOException: timeout").isEmpty());
         var emitted = parser.accept("2026-08-14 10:00:01 INFO Recovered");
         assertEquals(1, emitted.size());
         assertEquals(LogLevel.ERROR, emitted.getFirst().level());
+        assertEquals(1, emitted.getFirst().lineNumber());
         assertEquals("abc-123", emitted.getFirst().traceId());
+        assertEquals("http-worker-7", emitted.getFirst().threadId());
         assertTrue(emitted.getFirst().content().contains("Caused by:"));
         assertEquals(LogLevel.INFO, parser.finish().getFirst().level());
     }

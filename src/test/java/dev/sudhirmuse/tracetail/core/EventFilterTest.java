@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class EventFilterTest {
-    private final LogEvent event = new LogEvent(1, Instant.EPOCH, LogLevel.ERROR, "trace-42", "Payment failed", "Payment failed for order 123");
+    private final LogEvent event = new LogEvent(1, 1, Instant.EPOCH, LogLevel.ERROR, "worker-1", "trace-42", "Payment failed", "Payment failed for order 123");
 
     @Test void filtersByLevelTextAndTrace() {
         assertTrue(new EventFilter("payment", false, LogLevel.WARN, "trace-42").predicate().test(event));
