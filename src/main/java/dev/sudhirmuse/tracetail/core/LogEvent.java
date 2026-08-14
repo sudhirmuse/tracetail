@@ -3,4 +3,5 @@ package dev.sudhirmuse.tracetail.core;
 
 import java.time.Instant;
 
-public record LogEvent(long sequence, Instant receivedAt, LogLevel level, String traceId, String summary, String content) {}
+public record LogEvent(long sequence, long lineNumber, Instant receivedAt, LogLevel level, String threadId, String traceId,
+                       String summary, String content) {}

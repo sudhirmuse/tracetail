@@ -16,6 +16,6 @@ class BoundedEventBufferTest {
     }
 
     private LogEvent event(long sequence) {
-        return new LogEvent(sequence, Instant.EPOCH, LogLevel.INFO, "", "event", "event");
+        return new LogEvent(sequence, sequence, Instant.EPOCH, LogLevel.INFO, "", "", "event", "event");
     }
 }

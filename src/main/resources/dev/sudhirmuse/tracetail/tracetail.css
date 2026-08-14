@@ -43,3 +43,47 @@
     -fx-border-color: #ff5d73;
     -fx-border-width: 1.5;
 }
+
+.root.theme-light {
+    -fx-base: #f3f5f8;
+    -fx-background: #ffffff;
+    -fx-control-inner-background: #ffffff;
+    -fx-text-background-color: #172033;
+    -fx-accent: #1976d2;
+}
+
+.theme-light .menu-bar, .theme-light .tool-bar, .theme-light .status-bar {
+    -fx-background-color: #edf1f6;
+}
+
+.theme-light .status-bar { -fx-text-fill: #536276; }
+
+.theme-light .table-view, .theme-light .text-area {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #c9d2df;
+}
+
+.theme-light .table-row-cell {
+    -fx-background-color: #ffffff;
+    -fx-border-color: transparent transparent #e4e9f0 transparent;
+}
+
+.theme-light .table-row-cell:odd { -fx-background-color: #f7f9fc; }
+.theme-light .table-row-cell:selected { -fx-background-color: #b9daf8; }
+.theme-light .table-row-cell.level-warn .text { -fx-fill: #8a5a00; }
+.theme-light .table-row-cell.level-error .text,
+.theme-light .table-row-cell.level-fatal .text { -fx-fill: #b42335; }
+.theme-light .table-row-cell.level-debug .text,
+.theme-light .table-row-cell.level-trace .text { -fx-fill: #65758b; }
+.theme-light .table-row-cell.level-info .text { -fx-fill: #24344a; }
+
+.search-match {
+    -fx-background-color: #ffca28;
+    -fx-text-fill: #101317;
+    -fx-font-weight: bold;
+    -fx-padding: 0 1 0 1;
+}
+
+.hyperlink {
+    -fx-padding: 4 6 4 6;
+}

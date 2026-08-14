@@ -4,6 +4,7 @@ package dev.sudhirmuse.tracetail.core;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -15,8 +16,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public final class FileTailer implements AutoCloseable {
-    private static final long INITIAL_BYTES = 5L * 1024 * 1024;
-    private static final int MAX_READ_BYTES = 1024 * 1024;
+    private static final long INITIAL_BYTES = 128L * 1024;
+    private static final int MAX_READ_BYTES = 128 * 1024;
     private final Path path;
     private final Consumer<List<String>> consumer;
     private final Consumer<Exception> errorConsumer;
@@ -25,11 +26,20 @@ public final class FileTailer implements AutoCloseable {
     private byte[] partial = new byte[0];
     private byte[] boundary = new byte[0];
     private Object fileKey;
+    private volatile boolean initialized;
+    private final Charset charset;
+    private final byte[] newline;
 
     public FileTailer(Path path, Consumer<List<String>> consumer, Consumer<Exception> errorConsumer) {
+        this(path, consumer, errorConsumer, StandardCharsets.UTF_8);
+    }
+
+    public FileTailer(Path path, Consumer<List<String>> consumer, Consumer<Exception> errorConsumer, Charset charset) {
         this.path = path.toAbsolutePath().normalize();
         this.consumer = consumer;
         this.errorConsumer = errorConsumer;
+        this.charset = charset;
+        this.newline = "\n".getBytes(charset);
         this.executor = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = new Thread(runnable, "tracetail-" + path.getFileName());
             thread.setDaemon(true);
@@ -39,23 +49,39 @@ public final class FileTailer implements AutoCloseable {
 
     public void start() throws IOException {
         if (!Files.isRegularFile(path)) throw new IOException("Not a readable file: " + path);
+        executor.execute(this::initializeAndPoll);
+        executor.scheduleWithFixedDelay(this::pollSafely, 75, 75, TimeUnit.MILLISECONDS);
+    }
+
+    private void initializeAndPoll() {
+        try {
         long size = Files.size(path);
         fileKey = fileKey();
         position = Math.max(0, size - INITIAL_BYTES);
         if (position > 0) skipPartialFirstLine();
-        pollSafely();
-        executor.scheduleWithFixedDelay(this::pollSafely, 250, 250, TimeUnit.MILLISECONDS);
+            initialized = true;
+            poll();
+        } catch (Exception exception) { errorConsumer.accept(exception); }
     }
 
     private void skipPartialFirstLine() throws IOException {
         try (RandomAccessFile file = new RandomAccessFile(path.toFile(), "r")) {
             file.seek(position);
-            file.readLine();
+            int matched = 0;
+            while (file.getFilePointer() < file.length()) {
+                int value = file.read();
+                if (value < 0) break;
+                if ((byte) value == newline[matched]) {
+                    matched++;
+                    if (matched == newline.length) break;
+                } else matched = (byte) value == newline[0] ? 1 : 0;
+            }
             position = file.getFilePointer();
         }
     }
 
     private void pollSafely() {
+        if (!initialized) return;
         try { poll(); }
         catch (Exception exception) { errorConsumer.accept(exception); }
     }
@@ -110,15 +136,24 @@ public final class FileTailer implements AutoCloseable {
         System.arraycopy(bytes, 0, combined, partial.length, bytes.length);
         List<String> lines = new ArrayList<>();
         int start = 0;
-        for (int index = 0; index < combined.length; index++) {
-            if (combined[index] == '\n') {
-                int end = index > start && combined[index - 1] == '\r' ? index - 1 : index;
-                lines.add(new String(combined, start, end - start, StandardCharsets.UTF_8));
-                start = index + 1;
+        for (int index = 0; index <= combined.length - newline.length; index++) {
+            if (matches(combined, index, newline)) {
+                String line = new String(combined, start, index - start, charset);
+                if (line.endsWith("\r")) line = line.substring(0, line.length() - 1);
+                lines.add(line);
+                start = index + newline.length;
+                index += newline.length - 1;
             }
         }
         partial = java.util.Arrays.copyOfRange(combined, start, combined.length);
         if (!lines.isEmpty()) consumer.accept(List.copyOf(lines));
+    }
+
+    private boolean matches(byte[] bytes, int offset, byte[] expected) {
+        for (int index = 0; index < expected.length; index++) {
+            if (bytes[offset + index] != expected[index]) return false;
+        }
+        return true;
     }
 
     @Override public void close() { executor.shutdownNow(); }
