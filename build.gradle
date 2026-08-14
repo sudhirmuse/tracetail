@@ -1,0 +1,81 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+}
+
+group = 'dev.sudhirmuse'
+version = '0.1.0'
+
+repositories { mavenCentral() }
+
+java {
+    toolchain { languageVersion = JavaLanguageVersion.of(21) }
+}
+
+javafx {
+    version = '21.0.8'
+    modules = ['javafx.controls']
+}
+
+application {
+    mainClass = 'dev.sudhirmuse.tracetail.TraceTailLauncher'
+    applicationName = 'tracetail'
+}
+
+dependencies {
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.19.2'
+    testImplementation platform('org.junit:junit-bom:5.13.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') { useJUnitPlatform() }
+
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += ['-Xlint:all', '-Werror']
+}
+
+distributions {
+    main {
+        contents {
+            from('LICENSE')
+            from('README.md')
+        }
+    }
+}
+
+def windows = System.getProperty('os.name').toLowerCase().contains('win')
+
+tasks.register('prepareJpackage', Sync) {
+    dependsOn tasks.named('jar')
+    from(configurations.runtimeClasspath)
+    from(tasks.named('jar'))
+    into(layout.buildDirectory.dir('jpackage-input'))
+}
+
+tasks.register('jpackageAppImage', Exec) {
+    dependsOn tasks.named('prepareJpackage')
+    onlyIf { windows }
+    doFirst { delete(layout.buildDirectory.dir('jpackage/TraceTail')) }
+    def executable = new File(System.getProperty('java.home'), 'bin/jpackage.exe').absolutePath
+    commandLine executable,
+        '--type', 'app-image',
+        '--name', 'TraceTail',
+        '--app-version', project.version,
+        '--vendor', 'Sudhir Mishra',
+        '--description', 'Local Java and Spring log viewer',
+        '--copyright', 'Copyright 2026 Sudhir Mishra',
+        '--input', layout.buildDirectory.dir('jpackage-input').get().asFile,
+        '--main-jar', tasks.named('jar').get().archiveFileName.get(),
+        '--main-class', application.mainClass.get(),
+        '--dest', layout.buildDirectory.dir('jpackage').get().asFile
+}
+
+tasks.register('windowsRuntimeZip', Zip) {
+    dependsOn tasks.named('jpackageAppImage')
+    onlyIf { windows }
+    from(layout.buildDirectory.dir('jpackage/TraceTail')) { into('TraceTail') }
+    archiveFileName = "TraceTail-${project.version}-windows-x64.zip"
+    destinationDirectory = layout.buildDirectory.dir('distributions')
+}

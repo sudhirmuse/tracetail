@@ -1,0 +1,10 @@
+2026-08-14 10:00:00.001 INFO  [main] com.example.Application - Started Application in 2.481 seconds
+2026-08-14 10:00:05.120 DEBUG [http-nio-8080-exec-1] traceId=8fd52a4c13bd44af Checkout request received
+2026-08-14 10:00:05.245 ERROR [http-nio-8080-exec-1] traceId=8fd52a4c13bd44af Checkout failed password=should-not-be-visible
+    at com.example.checkout.PaymentService.charge(PaymentService.java:87)
+    at com.example.checkout.CheckoutService.complete(CheckoutService.java:42)
+Caused by: java.net.SocketTimeoutException: payment provider timed out
+    at java.base/sun.nio.ch.NioSocketImpl.timedRead(NioSocketImpl.java:278)
+    ... 12 more
+2026-08-14 10:00:06.001 WARN  [scheduler-1] correlationId=maintenance-42 Inventory cache is stale
+{"timestamp":"2026-08-14T10:00:07Z","level":"INFO","traceId":"json-trace-99","message":"JSON event","token":"should-not-be-visible"}
